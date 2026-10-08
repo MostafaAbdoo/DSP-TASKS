@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Signal:
 
     def __init__(self, indices, values, name="Signal"):
@@ -55,4 +58,51 @@ class Signal:
             indices=folded_indices,
             values=folded_values,
             name=f"Folded({self.name})",
+        )
+
+    # ================================================================
+    # TASK 2 - SINE GENERATION
+    # ================================================================
+
+    @staticmethod
+    def sine_signal(amplitude, phase, frequency, sampling_frequency, duration):
+     
+
+        t = np.arange(
+            0,
+            duration,
+            1 / sampling_frequency
+        )
+
+        values = amplitude * np.sin(
+            2 * np.pi * frequency * t + phase
+        )
+
+        return Signal(
+            indices=t,
+            values=values,
+            name=f"Sine({frequency}Hz)",
+        )
+
+    # ================================================================
+    # TASK 2 - COSINE GENERATION
+    # ================================================================
+
+    @staticmethod
+    def cosine_signal(amplitude, phase, frequency, sampling_frequency, duration):
+        
+        t = np.arange(
+            0,
+            duration,
+            1 / sampling_frequency
+        )
+
+        values = amplitude * np.cos(
+            2 * np.pi * frequency * t + phase
+        )
+
+        return Signal(
+            indices=t,
+            values=values,
+            name=f"Cosine({frequency}Hz)",
         )

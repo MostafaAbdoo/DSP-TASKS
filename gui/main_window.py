@@ -281,6 +281,13 @@ class DSPApp:
             pady=3
         )
 
+        self.quantize_button = ttk.Button(
+            operations_frame,
+            text="Quantize Signal",
+            command=self.open_quantization_window
+        )
+        self.quantize_button.pack(fill="x", pady=3)
+
 
         self.clear_button = ttk.Button(
             control_frame,
@@ -977,3 +984,123 @@ class DSPApp:
         )
 
         self.canvas.draw()
+
+        # ================================================================
+        # TASK 3 - QUANTIZATION
+        # ================================================================
+
+    def open_quantization_window(self):
+        selected_indices = self.signal_listbox.curselection()
+        if not selected_indices:
+            messagebox.showwarning(
+                "No Selection",
+                "Please select a signal to quantize."
+            )
+            return
+
+        input_signal = self.signals[selected_indices[0]]
+
+        window = tk.Toplevel(self.root)
+        window.title("Signal Quantization")
+        window.geometry("380x280")
+        window.minsize(350, 250)
+
+        container = ttk.Frame(window, padding=15)
+        container.pack(fill="both", expand=True)
+
+        ttk.Label(
+            container,
+            text="Quantization Settings",
+            font=("Arial", 14, "bold")
+        ).pack(pady=(0,10))
+
+        mode_var = tk.StringVar(value="Levels")
+
+        mode_frame = ttk.Frame(container)
+        mode_frame.pack(fill="x", pady=5)
+
+        ttk.Radiobutton(
+            mode_frame,
+            text="Levels (L)",
+            variable=mode_var,
+            value="Levels"
+        ).pack(side="left", padx=20)
+
+        ttk.Radiobutton(
+            mode_frame,
+            text="Bits (b)",
+            variable=mode_var,
+            value="Bits"
+        ).pack(side="left", padx=20)
+
+        ttk.Label(
+            container,
+            text="Enter Value:"
+        ).pack(anchor="w",  pady=(10, 2))
+
+        val_entry = ttk.Entry(container)
+        val_entry.pack(fill="x", pady=2)
+        val_entry.focus_set()
+
+        def process_quantization():
+            try:
+                val = int(val_entry.get())
+                if val <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid Input",
+                    "Please enter a positive integer."
+                )
+                return
+
+            if mode_var.get() == "Levels":
+                q_sig, err_sig, encodings = input_signal.quantize(num_levels=val)
+            else:
+                q_sig, err_sig, encodings = input_signal.quantize(num_bits=val)
+
+            self.signals.extend([q_sig, err_sig])
+            self.signal_listbox.insert(tk.END, q_sig.name)
+            self.signal_listbox.insert(tk.END, err_sig.name)
+
+            self.ax.clear()
+            Plotter.plot_signal(
+                self.ax,
+                self.canvas,
+                q_sig,
+                title="Quantization Results",
+                signal_type=self.display_mode.get(),
+                clear=False
+            )
+            Plotter.plot_signal(
+                self.ax,
+                self.canvas,
+                err_sig,
+                title="Quantization Results",
+                signal_type=self.display_mode.get(),
+                clear=False
+            )
+
+            enc_win = tk.Toplevel(self.root)
+            enc_win.title("Encoded Signal & Quantized Details")
+            enc_win.geometry("400x350")
+
+            text_area = tk.Text(enc_win, wrap="none")
+            text_area.pack(fill="both", expand=True, padx=10, pady=10)
+
+            scrollbar = ttk.Scrollbar(text_area, command=text_area.yview)
+            text_area.configure(yscrollcommand=scrollbar.set)
+
+            text_area.insert(tk.END, f"{'Index':<8}\t{'Encoded':<8}\t{'Quantized':<10}\t{'Error':<10}\n",)
+            text_area.insert(tk.END, "-" * 50 + "\n")
+            for idx, enc, q_val, err_val in zip(q_sig.indices, encodings, q_sig.values, err_sig.values):
+                text_area.insert(tk.END, f"{idx:<8.1f}\t{enc:<8}\t{q_val:<10.3f}\t{err_val:<10.3f}\n")
+
+            window.destroy()
+        val_entry.bind("<Return>",lambda event:process_quantization())
+
+        ttk.Button(
+            window,
+            text="Quantize",
+            command=process_quantization
+        ).pack(pady=15)

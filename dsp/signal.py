@@ -106,3 +106,42 @@ class Signal:
             values=values,
             name=f"Cosine({frequency}Hz)",
         )
+    # ================================================================
+    # TASK 3 - Quantization
+    # ================================================================
+
+    def quantize(self, num_levels=None, num_bits=None):
+        # input: number of levels or number of bits
+        # output: quantized_signal ,error signal ,encoded_values
+        # num_levels = 2 power num_bits
+        if num_levels is None and num_bits is None:
+            raise ValueError("must enter a number ")
+        if num_bits is not None:
+            num_levels = 2 ** num_bits
+        else:
+            num_bits=int(np.ceil(np.log2(num_levels)))
+        min_value = min(self.values)
+        max_value = max(self.values)
+        delta =(max_value-min_value)/num_levels
+        quantized_values = []
+        error_values = []
+        encoded_values = []
+        for x in self.values:
+            #determine interval index
+            if x ==max_value:
+                level_idx = num_levels-1
+            else:
+                level_idx = int((x-min_value)/delta)
+            #midpoint
+            q_value = min_value +(level_idx + 0.5)*delta
+
+            quantized_values.append(q_value)
+            error_values.append(q_value-x)
+
+            #binary encoding
+            binary_code =format(level_idx,f"0{num_bits}b")
+            encoded_values.append(binary_code)
+
+        quantized_signal=Signal(self.indices,quantized_values,name=f"Quantized({self.name},L={num_levels})")
+        error_signal=Signal(self.indices,error_values,name=f"Quantization Error({self.name})")
+        return  quantized_signal,error_signal,encoded_values
